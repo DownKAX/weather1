@@ -1,0 +1,21 @@
+from aiogram import Bot, Dispatcher
+from app.core.settings import settings
+from app.api.tg_handlers.routers import router
+from app.api.tg_handlers.newsletter import news
+import asyncio
+
+bot = Bot(settings.TELEGRAM_API)
+
+async def send_newsletter_message(user_id, message):
+    await bot.send_message(user_id, message)
+    await asyncio.sleep(0.3)
+
+async def main():
+    dp = Dispatcher()
+    dp.include_router(router)
+    dp.include_router(news)
+
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    asyncio.run(main())

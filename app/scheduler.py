@@ -1,0 +1,49 @@
+from app.api.models.users import QueryFilter
+from httpx import AsyncClient
+from datetime import datetime, timedelta
+from app.services.db_services import CitiesService, UserService
+from app.utils.uow import Uow
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.api.middleware.middleware import logger
+from app.bot import send_newsletter_message
+import asyncio
+
+
+async def send_newsletter(timezone):
+    city_ids = await UserService(Uow()).user_cities_by_timezone('city_id', 'id', (0, "city_id"), QueryFilter(column='timezone', value=timezone))
+    for city_id in city_ids:
+        users_in_city: list[int] = await UserService(Uow()).select_users({'city_id': city_id, 'newsletter': True}, return_value='telegram_id')
+        async with AsyncClient() as client:
+            body = {'city_id': city_id, 'forecast_range': 'Прогноз на сегодня'}
+            forecast = await client.post('http://localhost:80/user/get_forecast', data=body)
+            forecast = forecast.json().get('forecast')
+        for user in users_in_city:
+            try:
+                await send_newsletter_message(user, forecast)
+            except Exception as e:
+                logger.error(f"Error sending forecast: {e}\n")
+
+
+def schedule_daily_messages(scheduler, hour):
+    hour = datetime(year=2042, month=9, day=4, hour=7) - timedelta(hours=hour)
+    scheduler.add_job(
+        func=send_newsletter,
+        trigger='interval',
+        seconds=10,
+        id=f'newsletter_{hour.hour}',
+        name='Рассылка прогноза погоды на сегодня',
+        args=[hour.hour],
+        replace_existing=True
+    )
+
+async def main():
+    scheduler = AsyncIOScheduler(timezone="UTC")
+    timezones = await CitiesService(Uow()).get_unique_values('timezone')
+    for timezone in timezones:
+         schedule_daily_messages(scheduler, timezone)
+    scheduler.start()
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        scheduler.shutdown()
