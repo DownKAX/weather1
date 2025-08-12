@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, time, UTC
 import msgpack
 import httpx
-from my_redis_client import r
+from app.my_redis_client import r
 
 tfromiso = time.fromisoformat
 fromiso = datetime.fromisoformat
