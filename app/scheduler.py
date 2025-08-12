@@ -28,8 +28,8 @@ def schedule_daily_messages(scheduler, hour):
     hour = datetime(year=2042, month=9, day=4, hour=7) - timedelta(hours=hour)
     scheduler.add_job(
         func=send_newsletter,
-        trigger='interval',
-        seconds=10,
+        trigger='cron',
+        hour=hour.hour,
         id=f'newsletter_{hour.hour}',
         name='Рассылка прогноза погоды на сегодня',
         args=[hour.hour],
