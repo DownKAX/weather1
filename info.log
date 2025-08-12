@@ -1,0 +1,3 @@
+2025-08-12 16:19:14,199 - app.api.middleware.middleware - INFO - Logging request: POST /user/get_forecast
+2025-08-12 16:19:17,110 - app.api.middleware.middleware - INFO - Logged response: 200
+
