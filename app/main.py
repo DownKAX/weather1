@@ -3,7 +3,7 @@ import multiprocessing
 import uvicorn
 
 from fastapi import FastAPI
-from app.api.endpoinds.register import auth
+from app.auth.register import auth
 from app.api.endpoinds.user import user
 from app.api.middleware.middleware import logging_middleware
 
@@ -20,7 +20,7 @@ def bot_main():
     asyncio.run(main())
 
 def apscheduler_main():
-    from scheduler import main as scheduler_main
+    from app.scheduler import main as scheduler_main
     asyncio.run(scheduler_main())
 
 
