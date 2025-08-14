@@ -2,7 +2,8 @@
 from datetime import datetime, timedelta, time, UTC
 import msgpack
 import httpx
-from app.my_redis_client import r
+from app.my_redis_client import get_redis
+import asyncio
 
 tfromiso = time.fromisoformat
 fromiso = datetime.fromisoformat
@@ -41,7 +42,8 @@ class ForecastAPI:
         forecast_weather: dict[str, list] = forecast_weather.json()['hourly']  # {"time": ["2025-07-22T00:00", ...], "temperature_2m": [16.7, ...], ...}
         return forecast_uvi, forecast_weather
 
-    async def get_forecast(self, latitude: float, longitude: float, forecast_range: str, current_hour: int, analysis_mark = False):
+    async def get_forecast(self, latitude: float, longitude: float, forecast_range: str, current_hour: int, analysis_mark = False, r = get_redis()):
+        r = await get_redis()
         redis_key = f'{str(latitude)}-{str(longitude)}-{str(forecast_range)}-{str(current_hour)}'
 
         if cached_uvi := r.get(f"{redis_key}:list"):
