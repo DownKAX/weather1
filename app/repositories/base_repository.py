@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, insert, join
+from sqlalchemy import select, update, delete, insert
 from typing import Any
 
-from app.api.models.users import QueryFilter
+from app.repositories.models import QueryFilter
 from app.database.models import User, Cities
 
 
 class AbstractRepository(ABC):
     @abstractmethod
-    async def add_one(self, data):
+    async def add_one(self, data: dict):
         ...
 
     @abstractmethod
@@ -21,11 +21,23 @@ class AbstractRepository(ABC):
         ...
 
     @abstractmethod
-    async def delete_by_id(self, id):
+    async def get_all_by_column(self, columns_and_values: dict[str, Any]):
         ...
 
     @abstractmethod
-    async def update_one(self, id: int, values):
+    async def delete_by_id(self, id: int):
+        ...
+
+    @abstractmethod
+    async def update_one(self, column_name: str, column_value, values: dict):
+        ...
+
+    @abstractmethod
+    async def get_unique_values(self, column_name: str, filter: QueryFilter | None = None):
+        ...
+
+    async def inner_join_with_filter(self, second_model, clause_1, clause_2, return_value: tuple,
+                                     filter: QueryFilter | None = None):
         ...
 
 class Repository(AbstractRepository):
@@ -63,31 +75,31 @@ class Repository(AbstractRepository):
         result = await self.session.execute(query)
         return result.scalar_one()
 
-    async def update_one(self, column_name: str, column_value, values: dict):
+    async def update_one(self, column_name: str, column_value: Any, values: dict):
         column = getattr(self.model, column_name)
         query = update(self.model).where(column == column_value).values(**values).returning(self.model)
         result = await self.session.execute(query)
         return result.scalar_one()
 
-    async def get_unique_values(self, column_name: str, filter: QueryFilter | None = None):
+    async def get_unique_values(self, column_name: str, filterq: QueryFilter | None = None):
         column = getattr(self.model, column_name)
         query = select(column).distinct()
-        if filter:
-            filter_col = getattr(self.model, filter.column)
-            query = query.where(filter_col == filter.value)
+        if filterq:
+            filter_col = getattr(self.model, filterq.column)
+            query = query.where(filter_col == filterq.value)
         result = await self.session.execute(query)
         return result.scalars().all()
 
-    async def inner_join_with_filter(self, second_model, clause_1, clause_2, return_value: tuple, filter: QueryFilter | None = None):
+    async def inner_join_with_filter(self, second_model, clause_1, clause_2, return_value: tuple, filterq: QueryFilter | None = None):
         models = (self.model, second_model)
         clause_1 = getattr(self.model, clause_1)
         clause_2 = getattr(second_model, clause_2)
         column = getattr(models[return_value[0]], return_value[1])
         query = select(column).distinct().join(models[int(not return_value[0])], clause_1 == clause_2)
 
-        if filter:
-            filter_column = getattr(second_model, filter.column)
-            query = query.where(filter_column == filter.value)
+        if filterq:
+            filter_column = getattr(second_model, filterq.column)
+            query = query.where(filter_column == filterq.value)
         result = await self.session.execute(query)
         return result.scalars().all()
 

@@ -5,7 +5,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram import F, Router, types
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import KeyboardButton as KB, ReplyKeyboardMarkup as KMB
-from httpx import AsyncClient
+from datetime import UTC, datetime
+from app.utils.forecast_api import forecast
 
 from app.services.db_services import UserService, CitiesService
 from app.utils.uow import Uow, AbstractUow
@@ -35,18 +36,22 @@ async def weather(message: types.Message):
 @router.message(F.text=='Прогноз на завтра')
 @router.message(F.text=='Прогноз на сегодня(кратко)')
 @router.message(F.text=='Прогноз на завтра(кратко)')
-async def today(message: types.Message):
+async def today(message: types.Message, short_flag = False):
     user_service = await get_user_service()
+    city_service = await get_city_service()
     city_id = await user_service.select_user({'telegram_id': message.from_user.id}, return_value='city_id')
-    body = {'city_id': city_id, 'forecast_range': message.text}
+    city_data = await city_service.select_city({'id': city_id})
+    day = message.text
     if message.text.find('(кратко)') != -1:
-        body.update({'short_flag': True})
-        body['forecast_range'] = message.text.replace('(кратко)', '')
-    async with AsyncClient() as client:
-        forecast = await client.post('http://localhost:80/user/get_forecast', data=body)
+        short_flag = True
+        day = message.text.replace('(кратко)', '')
 
-    forecast = forecast.json().get('forecast')
-    await message.answer(text=forecast)
+    forecast_data = await forecast.get_forecast(latitude=city_data.latitude,
+                                          longitude=city_data.longitude,
+                                          forecast_range=day,
+                                          current_hour=datetime.now(UTC).hour,
+                                          analysis_mark=short_flag)
+    await message.answer(text=forecast_data)
 
 @router.message(F.text=="Изменить город")
 async def change_city(message: types.Message, state: FSMContext):

@@ -1,6 +1,5 @@
 from pydantic import BaseModel, model_validator
 from datetime import datetime
-from typing import Any
 from fastapi import HTTPException
 
 class User(BaseModel):
@@ -10,7 +9,6 @@ class User(BaseModel):
     city_id: int
     telegram_id: int
     newsletter: bool = True
-
 
 class RegistrationForm(BaseModel):
     username: str
@@ -35,8 +33,3 @@ class City(BaseModel):
     longitude: float
     latitude: float
     timezone: int
-
-class QueryFilter(BaseModel):
-    column: str
-    value: Any
-

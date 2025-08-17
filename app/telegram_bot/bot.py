@@ -1,7 +1,7 @@
 from aiogram import Bot, Dispatcher
 from app.core.settings import settings
-from app.api.tg_handlers.routers import router
-from app.api.tg_handlers.newsletter import news
+from app.telegram_bot.handlers.routers import router
+from app.telegram_bot.handlers.newsletter import news
 import asyncio
 
 bot = Bot(settings.TELEGRAM_API)
