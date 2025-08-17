@@ -1,8 +1,8 @@
 from typing import Any
 
 from app.utils.uow import Uow
-from app.repositories.base_repository import UserRepository, CitiesRepository
-from app.api.models.users import User, City, QueryFilter
+from app.api.models.users import User, City
+from app.repositories.models import QueryFilter
 from app.database.models import Cities
 from fastapi import HTTPException
 from datetime import datetime
@@ -46,7 +46,7 @@ class UserService:
             await self.uow.commit()
             return result
 
-    async def get_unique_values(self, col_name: str, filter: QueryFilter):
+    async def get_unique(self, col_name: str, filter: QueryFilter):
         async with self.uow:
             result = await self.uow.user_model.get_unique_values(col_name, filter)
             return result
@@ -87,7 +87,7 @@ class CitiesService:
             await self.uow.commit()
             return result
 
-    async def get_unique_values(self, col_name: str, filter: None | QueryFilter = None):
+    async def get_unique(self, col_name: str, filter: None | QueryFilter = None):
         async with self.uow:
             result = await self.uow.city_model.get_unique_values(col_name, filter)
             return result

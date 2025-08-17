@@ -1,11 +1,12 @@
-from app.api.models.users import QueryFilter
 from httpx import AsyncClient
 from datetime import datetime, timedelta
+
+from app.repositories.models import QueryFilter
 from app.services.db_services import CitiesService, UserService
 from app.utils.uow import Uow
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from app.api.middleware.middleware import logger
-from app.bot import send_newsletter_message
+from app.middleware.middleware import logger
+from app.telegram_bot.bot import send_newsletter_message
 import asyncio
 
 
@@ -38,7 +39,7 @@ def schedule_daily_messages(scheduler, hour):
 
 async def main():
     scheduler = AsyncIOScheduler(timezone="UTC")
-    timezones = await CitiesService(Uow()).get_unique_values('timezone')
+    timezones = await CitiesService(Uow()).get_unique('timezone')
     for timezone in timezones:
          schedule_daily_messages(scheduler, timezone)
     scheduler.start()
