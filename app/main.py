@@ -5,7 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 from app.auth.register import auth
 from app.api.endpoinds.user import user
-from app.api.middleware.middleware import logging_middleware
+from app.middleware.middleware import logging_middleware
 
 app = FastAPI()
 app.include_router(auth)
@@ -16,7 +16,7 @@ def main():
     uvicorn.run(app, host='0.0.0.0', port=80)
 
 def bot_main():
-    from app.bot import main
+    from app.telegram_bot.bot import main
     asyncio.run(main())
 
 def apscheduler_main():
