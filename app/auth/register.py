@@ -4,7 +4,7 @@ from passlib.hash import bcrypt
 from datetime import datetime
 
 from app.auth.exceptions import InvalidPasswordException, ExpiredAccessToken, InvalidRefreshToken
-from app.auth.models import Tokens
+from app.auth.models import Tokens, Session
 from app.api.models.users import User, RegistrationForm
 from app.auth.security import  get_tokens, check_session, verification_stamp, validate_token
 from app.auth.dependencies import *
@@ -31,6 +31,7 @@ async def login(useragent: useragent_dependency, user_service: user_dependency, 
     if not bcrypt.verify(credentials.password, user.password):
         raise InvalidPasswordException
     await verification_stamp(user.username, response, useragent)
+    return user
 
 @auth.post('/check_token')
 async def check_token(request: Request, response: Response, useragent: useragent_dependency):
@@ -43,12 +44,12 @@ async def check_token(request: Request, response: Response, useragent: useragent
     return payload
 
 @auth.post('/update_tokens')
-async def update_tokens(request: Request, response: Response, useragent):
+async def update_tokens(request: Request, response: Response, useragent: str) -> Tokens:
     tokens: Tokens = await get_tokens(request)
-    session_in_redis = await get_session(tokens.refresh_token)
+    session_in_redis: Session = await get_session(tokens.refresh_token)
     if session_in_redis:
         await check_session(useragent, session_in_redis)
-        tokens = await verification_stamp(session_in_redis.user, response, useragent)
+        tokens: Tokens = await verification_stamp(session_in_redis.user, response, useragent)
         return tokens
     else:
         raise InvalidRefreshToken

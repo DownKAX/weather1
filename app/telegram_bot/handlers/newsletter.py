@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from aiogram import F, Router, types
-from aiogram.types import KeyboardButton as KB, ReplyKeyboardMarkup as KMB, InlineKeyboardButton as IKB, InlineKeyboardMarkup as IKM
+from aiogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as IKM
 
 from app.utils.uow import Uow, AbstractUow
 from app.services.db_services import UserService, CitiesService
