@@ -42,7 +42,7 @@ class ForecastAPI:
         forecast_weather: dict[str, list] = forecast_weather.json()['hourly']  # {"time": ["2025-07-22T00:00", ...], "temperature_2m": [16.7, ...], ...}
         return forecast_uvi, forecast_weather
 
-    async def get_forecast(self, latitude: float, longitude: float, forecast_range: str, current_hour: int, analysis_mark = False, r = get_redis()):
+    async def get_forecast(self, latitude: float, longitude: float, forecast_range: str, current_hour: int, analysis_mark = False):
         r = await get_redis()
         redis_key = f'{str(latitude)}-{str(longitude)}-{str(forecast_range)}-{str(current_hour)}'
 

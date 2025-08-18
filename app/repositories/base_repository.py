@@ -94,7 +94,8 @@ class Repository(AbstractRepository):
         models = (self.model, second_model)
         clause_1 = getattr(self.model, clause_1)
         clause_2 = getattr(second_model, clause_2)
-        column = getattr(models[return_value[0]], return_value[1])
+        column = getattr(models[return_value[0]], return_value[1]) # из какой модели и какой столбец - return value
+        #соединяем с противоположной моделью
         query = select(column).distinct().join(models[int(not return_value[0])], clause_1 == clause_2)
 
         if filterq:

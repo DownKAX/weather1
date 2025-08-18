@@ -1,6 +1,5 @@
 from typing import Annotated
 
-from app.auth.security import get_useragent
 from app.utils.uow import Uow, AbstractUow
 from app.services.db_services import UserService, CitiesService
 from fastapi import Depends

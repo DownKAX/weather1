@@ -1,9 +1,10 @@
 from typing import Any
 
 from app.utils.uow import Uow
-from app.api.models.users import User, City
+from app.api.models.users import User
+from app.api.models.city import City
 from app.repositories.models import QueryFilter
-from app.database.models import Cities
+
 from fastapi import HTTPException
 from datetime import datetime
 
@@ -51,9 +52,9 @@ class UserService:
             result = await self.uow.user_model.get_unique_values(col_name, filter)
             return result
 
-    async def user_cities_by_timezone(self, clause_1, clause_2, return_value: str, filter: QueryFilter | None = None):
+    async def user_cities_by_timezone(self, second_model, clause_1, clause_2, return_value: str, filter: QueryFilter | None = None):
         async with self.uow:
-            result = await self.uow.user_model.inner_join_with_filter(Cities, clause_1, clause_2, return_value, filter)
+            result = await self.uow.user_model.inner_join_with_filter(second_model, clause_1, clause_2, return_value, filter)
             return result
 
 
