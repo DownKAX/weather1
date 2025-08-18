@@ -1,6 +1,7 @@
 from httpx import AsyncClient
 from datetime import datetime, timedelta
 
+from app.database.models import Cities
 from app.repositories.models import QueryFilter
 from app.services.db_services import CitiesService, UserService
 from app.utils.uow import Uow
@@ -11,7 +12,7 @@ import asyncio
 
 
 async def send_newsletter(timezone):
-    city_ids = await UserService(Uow()).user_cities_by_timezone('city_id', 'id', (0, "city_id"), QueryFilter(column='timezone', value=timezone))
+    city_ids = await UserService(Uow()).user_cities_by_timezone(Cities, 'city_id', 'id', (0, "city_id"), QueryFilter(column='timezone', value=timezone))
     for city_id in city_ids:
         users_in_city: list[int] = await UserService(Uow()).select_users({'city_id': city_id, 'newsletter': True}, return_value='telegram_id')
         async with AsyncClient() as client:

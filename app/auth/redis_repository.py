@@ -9,6 +9,7 @@ async def add_session(user: str, refresh_token: str, session: Session):
     r.hset('refresh_tokens', refresh_token, user)
 
 async def get_session(refresh_token: str) -> Session:
+    """Returns the session to compare UserAgent, stored in redis, with current UserAgent to get new refresh token"""
     r = await get_redis()
     username = r.hget('refresh_tokens', refresh_token)
     if username:

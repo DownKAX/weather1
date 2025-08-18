@@ -17,7 +17,6 @@ class RegistrationForm(BaseModel):
     telegram_id: int
     city: str
 
-
     @model_validator(mode='after')
     def validate_password_len(self):
         if 8 > (l :=len(self.password)) or l > 64:
@@ -27,9 +26,3 @@ class RegistrationForm(BaseModel):
         return self
 
 
-class City(BaseModel):
-    id: int = None
-    city_name: str
-    longitude: float
-    latitude: float
-    timezone: int
