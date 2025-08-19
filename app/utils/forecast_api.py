@@ -2,6 +2,8 @@
 from datetime import datetime, timedelta, time, UTC
 import msgpack
 import httpx
+from redis import Redis
+
 from app.my_redis_client import get_redis
 import asyncio
 
@@ -31,7 +33,7 @@ class ForecastAPI:
             ((5, 10, 15), ("Штиль. Идеально для пикника.", "Лёгкий ветер. Куртка не помешает.", "Сильный ветер. Закрепите незакреплённые предметы.", "Шторм! Будьте осторожны на улице."))
         )
 
-    async def get_external_data(self, latitude: float, longitude: float) -> tuple:
+    async def get_external_data(self, latitude: float, longitude: float) -> tuple[list, dict]:
         forecast_url_params = {'latitude': latitude, 'longitude': longitude, 'hourly': self.weather_vars}
         async with httpx.AsyncClient(timeout=60) as client:
             forecast_uvi = await client.get(self.uvi_url, params=forecast_url_params)
@@ -46,24 +48,24 @@ class ForecastAPI:
         r = await get_redis()
         redis_key = f'{str(latitude)}-{str(longitude)}-{str(forecast_range)}-{str(current_hour)}'
 
-        if cached_uvi := r.get(f"{redis_key}:list"):
-            cached_weather = r.get(f"{redis_key}:dict")
+        if cached_uvi := await r.get(f"{redis_key}:list"):
+            cached_weather = await r.get(f"{redis_key}:dict")
             forecast_weather = msgpack.unpackb(cached_weather, raw=False)
             forecast_uvi = msgpack.unpackb(cached_uvi, raw=False)
         else:
             forecast_uvi, forecast_weather = await self.get_external_data(latitude, longitude)
             seconds_till_next_hour: int = (60 - datetime.now(UTC).minute) * 60
-            r.setex(name=f"{redis_key}:dict", value=msgpack.packb(forecast_weather), time=seconds_till_next_hour)
-            r.setex(name=f"{redis_key}:list", value=msgpack.packb(forecast_uvi), time=seconds_till_next_hour)
+            await r.setex(name=f"{redis_key}:dict", value=msgpack.packb(forecast_weather), time=seconds_till_next_hour)
+            await r.setex(name=f"{redis_key}:list", value=msgpack.packb(forecast_uvi), time=seconds_till_next_hour)
 
 
         ranges = {'Прогноз на сегодня': 0, 'Прогноз на завтра': 1}
-        # find the common time point of two external services
-        # depending on the earliest point of the service whose minimum time is greater
+        # Для "выравнивания" прогнозов находим самое раннее время из обоих сервисов
+        # У прогноза с ультрафиолетом прогноз начинается позже по времени, поэтому берём его раннее время
         earliest_uvi_hour = fromiso(forecast_uvi[0]['time'][:-1])
-        forecast_day = timedelta(days=ranges[forecast_range])
+        forecast_day = timedelta(days=ranges[forecast_range]) #
         start_point: datetime = earliest_uvi_hour + forecast_day
-        if forecast_range == 'Прогноз на завтра': # tomorrow forecast must start from 00:00
+        if forecast_range == 'Прогноз на завтра': # Прогноз на завтра начинаем с полуночи
             start_point: datetime = start_point.replace(hour=0)
 
         end_point: datetime = start_point + timedelta(days=1, hours=-start_point.hour)
@@ -74,18 +76,20 @@ class ForecastAPI:
         forecast_weather = list(map(lambda x: x[start_point:end_point], forecast_weather.values()))
 
         if analysis_mark:
-            analysis = await self.analyze_forecast(forecast_weather)
-            return analysis
+            forecast = await self.analyze_forecast(forecast_weather)
+        else:
+            forecast = await self.build_full_forecast(forecast_weather, forecast_uvi, r, redis_key)
+        return forecast
 
-        forecast_len = len(forecast_weather[0])
-
-
+    async def build_full_forecast(self, forecast_raw_data: list, uvi_data: list, r: Redis, redis_key: str) -> str:
+        """Собирает строку, отображающую погодные данные на каждый час"""
         for_return = ''
+        forecast_len = len(forecast_raw_data[0]) # Количество часов в прогнозе
 
         for num in range(forecast_len):
-            for value, units in zip(forecast_weather, self.weather_units):
+            for value, units in zip(forecast_raw_data, self.weather_units):
                 val_raw = value[num]
-                uvi = forecast_uvi[num]
+                uvi = uvi_data[num]
 
                 if isinstance(val_raw, str):
                     if fromiso(val_raw).timetuple().tm_hour == 0 or num == 0:
@@ -100,10 +104,11 @@ class ForecastAPI:
             for_return += '\n\n'
 
         seconds_till_next_hour: int = (60 - datetime.now(UTC).minute) * 60
-        r.setex(redis_key, seconds_till_next_hour, for_return)
+        await r.setex(redis_key, seconds_till_next_hour, for_return)
         return for_return
 
-    async def analyze_forecast(self, forecast: list):
+    async def analyze_forecast(self, forecast: list) -> str:
+        """Собирает советы на основе погодных данных, а также все минимальные и максимальные значения по времени"""
         analysis = '\n\nОсновные значения по прогнозу:\n'
         advices = ''
         for value, value_name, advice in zip(forecast[1:-1], self.weather_keys, self.advices):
@@ -122,9 +127,5 @@ class ForecastAPI:
                 advices += advice[-1][-1]
         for_return = analysis + advices
         return for_return
-
-
-
-
 
 forecast = ForecastAPI()
