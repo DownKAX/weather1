@@ -1,8 +1,8 @@
 import os
-import redis
+from redis.asyncio import Redis, ConnectionPool
 
 redis_host = os.getenv('REDIS_HOST', 'localhost')
-pool = redis.ConnectionPool(host=redis_host, port=6379, db=0)
+pool = ConnectionPool(host=redis_host, port=6379, db=0)
 
 async def get_redis():
-    return redis.Redis(connection_pool=pool)
+    return Redis(connection_pool=pool)
