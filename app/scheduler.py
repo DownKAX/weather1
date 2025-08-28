@@ -1,5 +1,5 @@
 from httpx import AsyncClient
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from app.database.models import Cities
 from app.repositories.models import QueryFilter
@@ -26,15 +26,16 @@ async def send_newsletter(timezone):
                 logger.error(f"Error sending forecast: {e}\n")
 
 
-def schedule_daily_messages(scheduler, hour):
-    hour = datetime(year=2042, month=9, day=4, hour=7) - timedelta(hours=hour)
+def schedule_daily_messages(scheduler, timezone):
+    hour = timedelta(hours=7) - timedelta(hours=timezone)
+    hour = int(hour.seconds / 60 / 60)
     scheduler.add_job(
         func=send_newsletter,
         trigger='cron',
-        hour=hour.hour,
-        id=f'newsletter_{hour.hour}',
+        hour=hour,
+        id=f'newsletter_{hour}',
         name='Рассылка прогноза погоды на сегодня',
-        args=[hour.hour],
+        args=[timezone],
         replace_existing=True
     )
 
@@ -42,7 +43,7 @@ async def main():
     scheduler = AsyncIOScheduler(timezone="UTC")
     timezones = await CitiesService(Uow()).get_unique('timezone')
     for timezone in timezones:
-         schedule_daily_messages(scheduler, timezone)
+        schedule_daily_messages(scheduler, timezone)
     scheduler.start()
     try:
         while True:
