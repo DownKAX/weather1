@@ -21,11 +21,11 @@ async def update_telegram_city(user_service: user_dependency, city_service: city
         data_to_update['city_id'] = city_id
     if telegram_id:
         data_to_update['telegram_id'] = telegram_id
-    updated_data = await user_service.update_data(col_name='username', col_value=user, data=data_to_update)
+    updated_data = await user_service.update_data(col_name='username', col_value=user.get('username'), data=data_to_update)
     return updated_data
 
 @user.post("/get_forecast")
-async def get_forecast(city_service: city_dependency, token = Depends(check_token),
+async def get_forecast(city_service: city_dependency,
                        city_id: int = Form(...), forecast_range: str = Form(...),
                        short_flag: bool = Form(default=False)
                        ):

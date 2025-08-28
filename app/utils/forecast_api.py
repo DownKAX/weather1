@@ -48,7 +48,8 @@ class ForecastAPI:
         r = await get_redis()
         redis_key = f'{str(latitude)}-{str(longitude)}-{str(forecast_range)}-{str(current_hour)}'
 
-        if cached_uvi := await r.get(f"{redis_key}:list"):
+        cached_uvi = await r.get(f"{redis_key}:list")
+        if cached_uvi:
             cached_weather = await r.get(f"{redis_key}:dict")
             forecast_weather = msgpack.unpackb(cached_weather, raw=False)
             forecast_uvi = msgpack.unpackb(cached_uvi, raw=False)

@@ -4,7 +4,7 @@ __pycache__/
 **/__pycache__
 */__pycache__
 */__pycache__/*
-
+app/celery_scheduler
 .idea/
 .idea
 .idea/*
