@@ -1,18 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from aiogram import F, Router, types
+from aiogram import types
 from app.telegram_bot.handlers.dependecies import user_dependency
-from app.telegram_bot.keyboards.common_keyboards import newsletter
+from app.telegram_bot.keyboards.common_keyboards import newsletter_markup
 
-news = Router()
-
-
-
-@news.message(F.text=='Рассылка')
 async def newsletter(message: types.Message):
-    await message.answer("Изменение настроек рассылки", reply_markup=newsletter)
+    await message.answer("Изменение настроек рассылки", reply_markup=newsletter_markup)
 
-@news.callback_query(F.data == 'news_refuse')
 async def news_refuse(callback_data: types.CallbackQuery, user_service: user_dependency):
     newsletter_sub = await user_service.select_user({'telegram_id': callback_data.from_user.id}, return_value='newsletter')
     if newsletter_sub:
@@ -21,7 +15,6 @@ async def news_refuse(callback_data: types.CallbackQuery, user_service: user_dep
     else:
         await callback_data.answer(text='Вы и так не подписаны на рассылку')
 
-@news.callback_query(F.data == 'news_accept')
 async def news_accept(callback_data: types.CallbackQuery, user_service: user_dependency):
     newsletter_sub = await user_service.select_user({'telegram_id': callback_data.from_user.id}, return_value='newsletter')
     if newsletter_sub:
