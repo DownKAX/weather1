@@ -1,4 +1,6 @@
 import asyncio
+import sys
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -6,11 +8,29 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+sys.path.append(os.path.join(sys.path[0], 'app'))
+
+from dotenv import load_dotenv
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app', '.env')
+
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+
+
+
+
+from app.core.settings import settings
 from app.database.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+section = config.config_ini_section
+config.set_section_option(section, "DB_HOST", settings.DB_HOST)
+config.set_section_option(section, "DB_PORT", settings.DB_PORT)
+config.set_section_option(section, "DB_USER", settings.DB_USER)
+config.set_section_option(section, "DB_NAME", settings.DB_NAME)
+config.set_section_option(section, "DB_PASS", settings.DB_PASS)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -4,18 +4,19 @@ import pytest_asyncio
 from alembic import command
 from alembic.config import Config
 from app.main import app
+import asyncio
 
 @pytest_asyncio.fixture(name='client') #стандартное создание асинхронного клиента для теста
 async def async_client():
     async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as client:
         yield client
 
-
 @pytest_asyncio.fixture(scope='class', autouse=True)
-def alembic_test_data_seeding():
+async def alembic_test_data_seeding():
     config = Config('alembic_test.ini')
-    command.upgrade(config, 'head')
-    yield
+    await asyncio.to_thread(command.upgrade, config, 'head')
+    yield # Код выше выполняется до теста, а ниже - после
+    await asyncio.to_thread(command.downgrade, config, 'base')
 
 class TestLogin:
     @pytest.mark.asyncio

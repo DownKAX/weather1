@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base
 from datetime import datetime
 
@@ -12,7 +12,7 @@ class User(Base):
     register_time: Mapped[datetime] = mapped_column(nullable=False, unique=False)
     city_id: Mapped[int] = mapped_column(ForeignKey('cities.id', ondelete='SET NULL', onupdate='CASCADE'),
                                          unique=False, nullable=False)
-    telegram_id: Mapped[int] = mapped_column(unique=True, nullable=False)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     newsletter: Mapped[bool] = mapped_column(unique=False, nullable=False)
 
 class Cities(Base):

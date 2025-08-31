@@ -12,7 +12,7 @@ async def async_client():
     async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as client:
         yield client
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture(scope='class', autouse=True)
 async def alembic_test_data_seeding():
     config = Config('alembic_test.ini')
     await asyncio.to_thread(command.upgrade, config, 'head')
@@ -58,7 +58,7 @@ class TestRegister:
                 'telegram_id': 1134534511,
                 'city': 'City1'}
         response = await client.put("register/signup", data=data)
-        assert response.json()['detail'] == "username is already taken!"
+        assert response.json()['detail'] == 'Some data is already used by another user'
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -67,7 +67,7 @@ class TestRegister:
                 'telegram_id': 591989105,
                 'city': 'City1'}
         response = await client.put("register/signup", data=data)
-        assert response.json()['detail'] == "telegram_id is already taken!"
+        assert response.json()['detail'] == 'Some data is already used by another user'
         assert response.status_code == 401
 
     @pytest.mark.asyncio

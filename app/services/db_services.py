@@ -34,7 +34,7 @@ class UserService:
     async def add_user(self, data: User) -> User:
         data = data.model_dump()
         async with self.uow:
-            result = await unique_check(self.uow.user_model.add_one, with_ermsg=True, e_code=401, e_message=' is already taken!', data=data)
+            result = await unique_check(self.uow.user_model.add_one, e_code=401, e_message='Some data is already used by another user', data=data)
             result: User = User.model_validate(result.__dict__)
             await self.uow.commit()
             return result
