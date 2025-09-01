@@ -27,8 +27,8 @@ def upgrade() -> None:
     sa.Column('longitude', sa.Float(), nullable=False),
     sa.Column('timezone', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('city_name')
-    )
+    sa.UniqueConstraint('city_name'),
+                    if_not_exists=True)
     op.create_table('users',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, primary_key=True),
     sa.Column('username', sa.String(), nullable=False),
@@ -40,8 +40,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['city_id'], ['cities.id'], onupdate='CASCADE', ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('telegram_id'),
-    sa.UniqueConstraint('username')
-    )
+    sa.UniqueConstraint('username'),
+                    if_not_exists=True)
 
 
 def downgrade() -> None:

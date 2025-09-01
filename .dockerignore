@@ -11,3 +11,6 @@ app/celery_scheduler
 
 test.py
 info.log
+
+app/.env
+.env.test
