@@ -1,9 +1,11 @@
 from celery import Celery
 from datetime import timedelta
+from dotenv import load_dotenv
+import os
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "app", ".env"))
+
 
 scheduler = Celery('tg_messages', broker='redis://localhost:6379/0')
-
-scheduler.conf.update()
 
 scheduler.conf.update(
     task_serializer='json',

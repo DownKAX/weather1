@@ -12,15 +12,16 @@ from app.telegram_bot.bot import send_newsletter_message
 from app.utils.uow import Uow
 from app.core.settings import settings
 
-class LoggedTask(celery.Task):
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
+class LoggedTask(celery.Task):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         logger.error(f"Schedule task - {task_id} failed: {exc}")
-        print('!!')
 
 @scheduler.task(base=LoggedTask)
 def send_newsletter_task(timezone):
-    asyncio.run(send_newsletter(timezone))
+    loop.run_until_complete(send_newsletter(timezone))
 
 async def send_newsletter(timezone):
     async with Bot(settings.TELEGRAM_API) as bot:

@@ -36,9 +36,14 @@ class Uow(AbstractUow):
         self.user_model = UserRepository(self.session)
         self.city_model = CitiesRepository(self.session)
 
-    async def __aexit__(self, *args):
-        await self.rollback()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.session.commit()
+        await self.session.rollback()
         await self.session.close()
+
+        self.session = None
 
     async def commit(self):
         await self.session.commit()

@@ -12,7 +12,6 @@ sys.path.append(os.path.join(sys.path[0], 'app'))
 
 from dotenv import load_dotenv
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app', '.env')
-
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 

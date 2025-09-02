@@ -12,7 +12,7 @@ async def async_client():
     async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as client:
         yield client
 
-@pytest_asyncio.fixture(scope='class', autouse=True)
+@pytest_asyncio.fixture(scope='function', autouse=True)
 async def alembic_test_data_seeding():
     config = Config('alembic_test.ini')
     await asyncio.to_thread(command.upgrade, config, 'head')
