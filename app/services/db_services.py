@@ -77,7 +77,7 @@ class CitiesService:
             return result if not return_value else getattr(result, return_value)
 
     async def add_city(self, data: City):
-        data: dict = data.model_dump()
+        data: dict = data.model_dump(exclude_none=True)
         async with self.uow:
             try:
                 result = await unique_check(self.uow.city_model.add_one, e_code=401,

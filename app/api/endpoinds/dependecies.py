@@ -1,8 +1,8 @@
 from typing import Annotated
+from fastapi import Depends
 
 from app.utils.uow import Uow, AbstractUow
 from app.services.db_services import UserService, CitiesService
-from fastapi import Depends
 
 async def get_user_service(uow: AbstractUow = Depends(Uow)):
     return UserService(uow)

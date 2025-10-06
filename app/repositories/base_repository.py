@@ -81,7 +81,7 @@ class Repository(AbstractRepository):
         result = await self.session.execute(query)
         return result.scalar_one()
 
-    async def get_unique_values(self, column_name: str, filterq: QueryFilter | None = None):
+    async def get_unique_values(self, column_name: str, filterq: QueryFilter | None = None) -> list:
         column = getattr(self.model, column_name)
         query = select(column).distinct()
         if filterq:

@@ -1,11 +1,15 @@
-from celery import Celery
-from datetime import timedelta
+from celery.schedules import crontab
 from dotenv import load_dotenv
 import os
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "app", ".env"))
 
+from celery import Celery
+from app.my_redis_client import get_sync_redis
 
-scheduler = Celery('tg_messages', broker='redis://localhost:6379/0')
+host = os.getenv('REDIS_HOST')
+broker_host = f'redis://{host}:6379/0'
+scheduler = Celery('tg_messages', broker=broker_host)
+
 
 scheduler.conf.update(
     task_serializer='json',
@@ -15,10 +19,16 @@ scheduler.conf.update(
     enable_utc=True,
 )
 
-scheduler.conf.beat_schedule = {
-    'send_newsletter': {
-        'task': 'celery_tasks.send_newsletter_task',
-        'schedule': timedelta(seconds=7),
-        'args': (3, ),
-    }
-}
+r = get_sync_redis()
+timezones = r.smembers('timezones')
+for tz in timezones:
+    tz = int(tz)
+    hour = 7 - tz
+    if hour < 0:
+        hour = 24 + hour
+    scheduler.conf.beat_schedule[f'send_newsletter{tz}'] = \
+        {
+            'task': 'celery_tasks.send_newsletter_task',
+            'schedule': crontab(hour=hour),
+            'args': (tz,),
+        }

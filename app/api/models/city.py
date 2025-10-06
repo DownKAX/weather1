@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class City(BaseModel):
-    id: int = None
+    id: int | None = None
     city_name: str
     longitude: float
     latitude: float

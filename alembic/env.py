@@ -12,8 +12,7 @@ sys.path.append(os.path.join(sys.path[0], 'app'))
 
 from dotenv import load_dotenv
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app', '.env')
-if os.path.exists(dotenv_path):
-    load_dotenv(dotenv_path)
+load_dotenv(dotenv_path)
 
 
 
@@ -27,9 +26,9 @@ config = context.config
 section = config.config_ini_section
 config.set_section_option(section, "DB_HOST", settings.DB_HOST)
 config.set_section_option(section, "DB_PORT", settings.DB_PORT)
-config.set_section_option(section, "DB_USER", settings.DB_USER)
-config.set_section_option(section, "DB_NAME", settings.DB_NAME)
-config.set_section_option(section, "DB_PASS", settings.DB_PASS)
+config.set_section_option(section, "DB_USER", settings.POSTGRES_USER)
+config.set_section_option(section, "DB_NAME", settings.POSTGRES_DB)
+config.set_section_option(section, "DB_PASS", settings.POSTGRES_PASSWORD)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

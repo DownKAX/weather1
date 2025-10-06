@@ -37,7 +37,7 @@ def upgrade() -> None:
     sa.Column('city_id', sa.Integer(), nullable=False),
     sa.Column('telegram_id', sa.BigInteger(), nullable=False),
     sa.Column('newsletter', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['city_id'], ['cities.id'], onupdate='CASCADE', ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['city_id'], ['cities.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('telegram_id'),
     sa.UniqueConstraint('username'),

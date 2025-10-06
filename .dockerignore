@@ -4,13 +4,12 @@ __pycache__/
 **/__pycache__
 */__pycache__
 */__pycache__/*
-app/celery_scheduler
 .idea/
 .idea
 .idea/*
-
+venv
 test.py
 info.log
-
 app/.env
-.env.test
+app/scheduler.py
+app/info.log
