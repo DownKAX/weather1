@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 
 from app.api.models.city import City
 from app.api.endpoinds.dependecies import city_dependency, user_dependency
-from app.api.endpoinds.exceptions import NoDataException
+from app.api.endpoinds.exceptions import NoDataException, NoCityException
 from app.utils.forecast_api import forecast
 from app.auth.register import check_token
 
@@ -30,6 +30,8 @@ async def get_forecast(city_service: city_dependency,
                        short_flag: bool = Form(default=False)
                        ):
     city_data: City = await city_service.select_city({'id': city_id})
+    if not city_data:
+        raise NoCityException
     result = await forecast.get_forecast(latitude=city_data.latitude,
                                          longitude=city_data.longitude,
                                          forecast_range=forecast_range,

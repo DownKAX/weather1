@@ -23,6 +23,7 @@ r = get_sync_redis()
 timezones = r.smembers('timezones')
 for tz in timezones:
     tz = int(tz)
+    print(tz)
     hour = 7 - tz
     if hour < 0:
         hour = 24 + hour

@@ -30,8 +30,6 @@ def setup_tasks():
     for tz in timezones:
         r.sadd('timezones', tz)
 
-
-
 if __name__ == '__main__':
     setup_tasks()
     multiprocessing.Process(target=main).start()
