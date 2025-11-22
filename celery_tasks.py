@@ -1,6 +1,7 @@
 from httpx import AsyncClient
 import celery
 import asyncio
+import os
 from aiogram import Bot
 
 from celery_scheduler import scheduler
@@ -12,16 +13,13 @@ from app.telegram_bot.bot import send_newsletter_message
 from app.utils.uow import Uow
 from app.core.settings import settings
 
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
-
 class LoggedTask(celery.Task):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         logger.error(f"Schedule task - {task_id} failed: {exc}")
 
 @scheduler.task(base=LoggedTask)
 def send_newsletter_task(timezone):
-    loop.run_until_complete(send_newsletter(timezone))
+    asyncio.run(send_newsletter(timezone))
 
 async def send_newsletter(timezone):
     async with Bot(settings.TELEGRAM_API) as bot:
@@ -31,8 +29,9 @@ async def send_newsletter(timezone):
             users_in_city: list[int] = await UserService(Uow()).select_users({'city_id': city_id, 'newsletter': True},
                                                                              return_value='telegram_id')
             async with AsyncClient() as client:
+                forecast_host = os.getenv('ENVIRONMENT', 'localhost')
                 body = {'city_id': city_id, 'forecast_range': 'Прогноз на сегодня'}
-                forecast = await client.post('http://127.0.0.1:80/user/get_forecast', data=body)
+                forecast = await client.post(f'http://{forecast_host}:80/user/get_forecast', data=body)
                 forecast = forecast.json().get('forecast')
                 if not forecast:
                     logger.error("Failed to get forecast")

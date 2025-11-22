@@ -13,3 +13,14 @@ info.log
 app/.env
 app/scheduler.py
 app/info.log
+*.pyc
+*.pyo
+.Python
+.pytest_cache
+.git/
+.gitignore
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat-schedule.dat
+celerybeat-schedule.dir
+celerybeat-schedule.bak

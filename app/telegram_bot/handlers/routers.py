@@ -6,6 +6,7 @@ from aiogram.fsm.state import StatesGroup, State
 from httpx import AsyncClient
 from app.telegram_bot.handlers.dependecies import user_dependency, cities_dependency
 from app.telegram_bot.keyboards.common_keyboards import weather_markup
+import os
 
 class NewCityState(StatesGroup):
     new_city = State()
@@ -21,7 +22,8 @@ async def today(message: types.Message,
         body.update({'short_flag': True})
         body['forecast_range'] = message.text.replace('(кратко)', '')
     async with AsyncClient() as client:
-        forecast = await client.post('http://localhost:80/user/get_forecast', data=body)
+        environment = os.getenv('ENVIRONMENT', 'localhost')
+        forecast = await client.post(f'http://{environment}:80/user/get_forecast', data=body)
         forecast = forecast.json().get('forecast')
     await message.answer(text=forecast)
 

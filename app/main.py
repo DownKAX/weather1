@@ -1,6 +1,9 @@
 import asyncio
 import uvicorn
 import multiprocessing
+import os
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 from fastapi import FastAPI
 
 from app.auth.register import auth
@@ -32,6 +35,7 @@ def setup_tasks():
 
 if __name__ == '__main__':
     setup_tasks()
-    multiprocessing.Process(target=main).start()
     multiprocessing.Process(target=bot_main).start()
+    if not int(os.environ['DOCKER']):
+        multiprocessing.Process(target=main).start()
 

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     REDIS_HOST: str
+    DOCKER: int
 
     @property
     def DATABASE_URL(self):

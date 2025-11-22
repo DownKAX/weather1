@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, time, UTC
+from fastapi import HTTPException
+
 import msgpack
 import httpx
 from redis import Redis
@@ -38,6 +40,12 @@ class ForecastAPI:
         async with httpx.AsyncClient(timeout=60) as client:
             forecast_uvi = await client.get(self.uvi_url, params=forecast_url_params)
             forecast_weather = await client.get(self.weather_url, params=forecast_url_params)
+
+            if forecast_weather.status_code != 200:
+                raise HTTPException(detail="Weather external service is not responding: " + forecast_weather.text, status_code=401)
+
+            if forecast_uvi.status_code != 200:
+                raise HTTPException(detail="UVI external service is not responding: " + forecast_uvi.text, status_code=401)
 
         forecast_uvi: list = forecast_uvi.json()['forecast']  # [{'time': '2025-07-22T17:00:00Z', 'uvi': 0}, ...]
         forecast_weather.encoding = 'cp1251'

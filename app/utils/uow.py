@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.database.db import AsyncSessionMaker
+from app.database.db import get_session_maker
 from app.repositories.base_repository import UserRepository, CitiesRepository
 
 class AbstractUow(ABC):
@@ -29,7 +29,7 @@ class AbstractUow(ABC):
 
 class Uow(AbstractUow):
     def __init__(self):
-        self.session_maker = AsyncSessionMaker
+        self.session_maker = get_session_maker()
 
     async def __aenter__(self):
         self.session = self.session_maker()

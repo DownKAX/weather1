@@ -1,21 +1,87 @@
 services:
-  app:
-    build: .
+  api:
+    image: "weather_app:latest"
+    container_name: api
     env_file:
-      app/.env
+      - app/.env
     ports:
       - "80:80"
     environment:
       - REDIS_HOST=redis
       - DB_HOST=postgres
+      - DOCKER=1
     depends_on:
       redis:
         condition: service_started
       postgres:
         condition: service_healthy
-
+    command: uvicorn app.main:app --host 0.0.0.0 --port 80
     networks:
       - app-network
+
+  bot:
+    image: "weather_app:latest"
+    container_name: bot
+    env_file:
+      - app/.env
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=postgres
+      - DOCKER=1
+      - ENVIRONMENT=api
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    command: python app/main.py
+    networks:
+      - app-network
+
+  celery_worker:
+    image: "weather_app:latest"
+    container_name: celery_worker
+    env_file:
+      - app/.env
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=postgres
+      - DOCKER=1
+      - ENVIRONMENT=api
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    command: celery -A celery_tasks worker --pool=solo
+    networks:
+      - app-network
+
+  celery_beat:
+    image: "weather_app:latest"
+    container_name: celery_beat
+    env_file:
+      - app/.env
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=postgres
+      - DOCKER=1
+      - ENVIRONMENT=api
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    command: celery -A celery_tasks beat
+    networks:
+      - app-network
+
 
   redis:
     image: "redis:alpine"
