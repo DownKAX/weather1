@@ -4,6 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram import types
 from aiogram.fsm.state import StatesGroup, State
 from httpx import AsyncClient
+
+from app.middleware.middleware import logger
 from app.telegram_bot.handlers.dependecies import user_dependency, cities_dependency
 from app.telegram_bot.keyboards.common_keyboards import weather_markup
 import os
@@ -24,8 +26,14 @@ async def today(message: types.Message,
     async with AsyncClient() as client:
         environment = os.getenv('ENVIRONMENT', 'localhost')
         forecast = await client.post(f'http://{environment}:80/user/get_forecast', data=body)
-        forecast = forecast.json().get('forecast')
-    await message.answer(text=forecast)
+        if forecast.status_code == 200:
+            forecast = forecast.json().get('forecast')
+            await message.answer(text=forecast)
+        else:
+            await message.answer(text='Ошибка при получении погодных данных')
+            logger.info(forecast.text)
+            logger.info(f" status_code: {forecast.status_code}\n")
+
 
 async def change_city(message: types.Message, state: FSMContext):
     await message.answer(text='Введите следующим сообщением название вашего города')

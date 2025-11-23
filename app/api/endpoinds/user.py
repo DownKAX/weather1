@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, Depends
+from fastapi import APIRouter, Form, Depends, HTTPException
 from datetime import datetime, UTC
 
 from app.api.models.city import City
@@ -32,9 +32,12 @@ async def get_forecast(city_service: city_dependency,
     city_data: City = await city_service.select_city({'id': city_id})
     if not city_data:
         raise NoCityException
-    result = await forecast.get_forecast(latitude=city_data.latitude,
-                                         longitude=city_data.longitude,
-                                         forecast_range=forecast_range,
-                                         current_hour=datetime.now(UTC).hour,
-                                         analysis_mark=short_flag)
+    try:
+        result = await forecast.get_forecast(latitude=city_data.latitude,
+                                             longitude=city_data.longitude,
+                                             forecast_range=forecast_range,
+                                             current_hour=datetime.now(UTC).hour,
+                                             analysis_mark=short_flag)
+    except HTTPException as e:
+        raise e
     return {"forecast": result}

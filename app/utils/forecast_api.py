@@ -42,10 +42,10 @@ class ForecastAPI:
             forecast_weather = await client.get(self.weather_url, params=forecast_url_params)
 
             if forecast_weather.status_code != 200:
-                raise HTTPException(detail="Weather external service is not responding: " + forecast_weather.text, status_code=401)
+                raise HTTPException(detail="Weather external service is not responding", status_code=403)
 
             if forecast_uvi.status_code != 200:
-                raise HTTPException(detail="UVI external service is not responding: " + forecast_uvi.text, status_code=401)
+                raise HTTPException(detail="UVI external service is not responding", status_code=403)
 
         forecast_uvi: list = forecast_uvi.json()['forecast']  # [{'time': '2025-07-22T17:00:00Z', 'uvi': 0}, ...]
         forecast_weather.encoding = 'cp1251'
@@ -62,7 +62,11 @@ class ForecastAPI:
             forecast_weather = msgpack.unpackb(cached_weather, raw=False)
             forecast_uvi = msgpack.unpackb(cached_uvi, raw=False)
         else:
-            forecast_uvi, forecast_weather = await self.get_external_data(latitude, longitude)
+            try:
+                forecast_uvi, forecast_weather = await self.get_external_data(latitude, longitude)
+            except HTTPException as e:
+                raise e
+
             seconds_till_next_hour: int = (60 - datetime.now(UTC).minute) * 60
             await r.setex(name=f"{redis_key}:dict", value=msgpack.packb(forecast_weather), time=seconds_till_next_hour)
             await r.setex(name=f"{redis_key}:list", value=msgpack.packb(forecast_uvi), time=seconds_till_next_hour)
