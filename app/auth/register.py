@@ -13,7 +13,7 @@ from app.auth.redis_repository import get_session
 
 auth = APIRouter(prefix='/register')
 
-@auth.put('/signup')
+@auth.post('/signup')
 async def register(user_service: user_dependency, city_service: city_dependency,
                    credentials: RegistrationForm = Form(...)):
     city_id = await city_service.select_city({'city_name': credentials.city}, return_value='id')
