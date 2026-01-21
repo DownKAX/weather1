@@ -10,8 +10,8 @@ __pycache__/
 venv
 test.py
 info.log
-app/.env
-app/scheduler.py
+.env
+scheduler.py
 app/info.log
 *.pyc
 *.pyo
@@ -24,3 +24,4 @@ celerybeat-schedule.db
 celerybeat-schedule.dat
 celerybeat-schedule.dir
 celerybeat-schedule.bak
+tests/conftest.py

@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env.test')
+load_dotenv(dotenv_path)
+
 import asyncio
 from typing import AsyncGenerator
 
@@ -8,7 +13,7 @@ from sqlalchemy.pool import NullPool
 from app.core.settings import settings
 from app.database.db import get_session
 from app.database.models import Base
-from app.main import app
+from main import app
 
 engine_test = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
 async_session_maker = async_sessionmaker(

@@ -4,7 +4,7 @@ import os
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "app", ".env"))
 
 from celery import Celery
-from app.my_redis_client import get_sync_redis
+from my_redis_client import get_sync_redis
 
 host = os.getenv('REDIS_HOST')
 broker_host = f'redis://{host}:6379/0'

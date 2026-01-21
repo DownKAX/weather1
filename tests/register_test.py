@@ -5,7 +5,7 @@ from httpx import AsyncClient, ASGITransport
 import pytest_asyncio
 from alembic import command
 from alembic.config import Config
-from app.main import app
+from main import app
 
 @pytest_asyncio.fixture(name='client') #стандартное создание асинхронного клиента для теста
 async def async_client():
@@ -24,7 +24,7 @@ class TestRegister:
     async def test_success_signup(self, client):
         data = {'username': 'human2', 'password': 'password1234', 'password_confirmation': 'password1234','telegram_id': 1134534511,
                 'city': 'City1'}
-        response = await client.put("register/signup", data=data)
+        response = await client.post("register/signup", data=data)
         assert 'username' in response.json()
         assert response.status_code == 200
 
@@ -32,7 +32,7 @@ class TestRegister:
     async def test_password_do_not_match(self, client):
         data = {'username': 'human2', 'password': 'password1234', 'password_confirmation': 'password12534',
                 'telegram_id': 1134534511, 'city': 'City1'}
-        response = await client.put("register/signup", data=data)
+        response = await client.post("register/signup", data=data)
         assert response.json()['detail'] == 'Passwords do not match'
         assert response.status_code == 400
 
@@ -40,7 +40,7 @@ class TestRegister:
     async def test_short_password(self, client):
         data = {'username': 'human2', 'password': 'pass', 'password_confirmation': 'pass',
                 'telegram_id': 1134534511, 'city': 'City1'}
-        response = await client.put("register/signup", data=data)
+        response = await client.post("register/signup", data=data)
         assert response.json()['detail'] == 'Password len must be between 8 and 64'
         assert response.status_code == 400
 
@@ -48,7 +48,7 @@ class TestRegister:
     async def test_long_password(self, client):
         data = {'username': 'human2', 'password': 'pass' * 40, 'password_confirmation': 'pass' * 40,
                 'telegram_id': 1134534511, 'city': 'City1'}
-        response = await client.put("register/signup", data=data)
+        response = await client.post("register/signup", data=data)
         assert response.json()['detail'] == 'Password len must be between 8 and 64'
         assert response.status_code == 400
 
@@ -57,7 +57,7 @@ class TestRegister:
         data = {'username': 'user1', 'password': 'password1234', 'password_confirmation': 'password1234',
                 'telegram_id': 1134534511,
                 'city': 'City1'}
-        response = await client.put("register/signup", data=data)
+        response = await client.post("register/signup", data=data)
         assert response.json()['detail'] == 'Some data is already used by another user'
         assert response.status_code == 401
 
@@ -66,7 +66,7 @@ class TestRegister:
         data = {'username': 'human2', 'password': 'password1234', 'password_confirmation': 'password1234',
                 'telegram_id': 591989105,
                 'city': 'City1'}
-        response = await client.put("register/signup", data=data)
+        response = await client.post("register/signup", data=data)
         assert response.json()['detail'] == 'Some data is already used by another user'
         assert response.status_code == 401
 
@@ -75,6 +75,6 @@ class TestRegister:
         data = {'username': 'human2', 'password': 'password1234', 'password_confirmation': 'password1234',
                 'telegram_id': 591989105,
                 'city': 'City15'}
-        response = await client.put("register/signup", data=data)
+        response = await client.post("register/signup", data=data)
         assert response.status_code == 404
         assert response.json()['detail'] == "City not found"

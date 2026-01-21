@@ -6,16 +6,7 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
 from alembic import context
-sys.path.append(os.path.join(sys.path[0], 'app'))
-
-from dotenv import load_dotenv
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app', '.env')
-load_dotenv(dotenv_path)
-
-
-
 
 from app.core.settings import settings
 from app.database.models import Base

@@ -6,8 +6,7 @@ import msgpack
 import httpx
 from redis import Redis
 
-from app.my_redis_client import get_redis
-import asyncio
+from my_redis_client import get_redis
 
 tfromiso = time.fromisoformat
 fromiso = datetime.fromisoformat

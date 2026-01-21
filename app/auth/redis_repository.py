@@ -1,6 +1,6 @@
 import json
 from app.auth.models import Session
-from app.my_redis_client import get_redis
+from my_redis_client import get_redis
 
 
 async def add_session(user: str, refresh_token: str, session: Session):

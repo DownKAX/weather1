@@ -3,7 +3,7 @@ from httpx import AsyncClient, ASGITransport
 import pytest_asyncio
 from alembic import command
 from alembic.config import Config
-from app.main import app
+from main import app
 import asyncio
 
 @pytest_asyncio.fixture(name='client') #стандартное создание асинхронного клиента для теста
