@@ -19,6 +19,8 @@ async def fill_db():
             to_add = City(city_name=x.get('Город'), longitude=float(x.get('Долгота')), latitude=float(x.get('Широта')),
                           timezone=int((t := x.get('Часовой пояс'))[t.find('C') + 1:]))
             await cities_service.add_city(to_add)
+        else:
+            print('Города успешно записаны в базу данных')
 
 if __name__ == '__main__':
     asyncio.run(fill_db())

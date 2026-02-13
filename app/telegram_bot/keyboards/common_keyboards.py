@@ -5,6 +5,5 @@ newsletter_keyboard = [[IKB(text='Отказаться от рассылки', c
 newsletter_markup = IKM(inline_keyboard=newsletter_keyboard)
 
 weather_keyboard = [[KB(text='Прогноз на сегодня'), KB(text='Прогноз на завтра')],
-                    [KB(text='Прогноз на сегодня(кратко)'), KB(text='Прогноз на завтра(кратко)')],
                     [KB(text='Рассылка'), KB(text="Изменить город")]]
 weather_markup = KMB(keyboard=weather_keyboard, resize_keyboard=True)

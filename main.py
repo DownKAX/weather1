@@ -1,4 +1,6 @@
 import asyncio
+import pathlib
+
 import uvicorn
 import multiprocessing
 from fastapi import FastAPI
@@ -33,6 +35,7 @@ def setup_tasks():
         r.sadd('timezones', tz)
 
 if __name__ == '__main__':
+    path = pathlib.Path('app', 'utils', 'forecast_plots').mkdir(parents=True, exist_ok=True)
     setup_tasks()
     multiprocessing.Process(target=bot_main).start()
     if not settings.DOCKER:

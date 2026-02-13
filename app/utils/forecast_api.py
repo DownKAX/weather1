@@ -1,38 +1,29 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timedelta, time, UTC
+import matplotlib
+matplotlib.use("Agg")
+import asyncio
+import pathlib
+from datetime import datetime, timedelta, time
 from fastapi import HTTPException
+import matplotlib.pyplot as plt
 
-import msgpack
+import pandas as pd
 import httpx
-from redis import Redis
 
-from my_redis_client import get_redis
+
+
 
 tfromiso = time.fromisoformat
 fromiso = datetime.fromisoformat
 
 class ForecastAPI:
     def __init__(self):
+        self.ranges = {'Прогноз на сегодня': False, 'Прогноз на завтра': True}
         self.uvi_url = "https://currentuvindex.com/api/v1/uvi"
         self.weather_url = "https://api.open-meteo.com/v1/forecast"
         self.weather_vars = ("temperature_2m", "relative_humidity_2m", "precipitation", "precipitation_probability",
                              "cloud_cover", "surface_pressure", "wind_speed_10m",
-                             "wind_direction_10m"
-                             )
-        self.weather_units = {"": "", '🌡': '°C | ', '💧': '%\n', '☔️': 'мм | ', '☔️％': '% | ',
-                               '☁️': '%\n', '⏲️': 'гПа | ',
-                               '💨': 'км/ч | ', '💨↗️': '°'
-                             }
-        self.weather_keys = tuple(self.weather_units.keys())[1:-1]
-        self.advices = (
-            ((-15, 0.001, 15, 25), ("Сильный мороз! Термобельё обязательно.", "Холодно. Наденьте пуховик и шапку.", "Прохладно. Легкая куртка не помешает.", "Идеально! футболка - отличный выбор.", "Жарко! Наденьте лёгкую одежду и головной убор.")),
-            ((30, 60), ("Сухой воздух. Пейте больше воды.", "Комфортная влажность.", "Высокая влажность. Одежда из дышащих тканей.")),
-            ((0.001, 2, 10),("Без осадков - можно без зонта.", "Лёгкий дождь. Возьмите зонт.", "Сильный дождь. Непромокаемая обувь обязательна.", "Ливень! Рекомендуем остаться дома.")),
-            ((20, 50, 80), ("Дождь маловероятен.", "Возможен дождь. Имейте зонт под рукой.", "Высокая вероятность дождя.", "Точно будет дождь! Обязателен дождевик.")),
-            ((20, 70), ("Ясно. Солнцезащитные очки обязательны.", "Переменная облачность.", "Пасмурно. Хороший день для музеев.")),
-            ((990, 1020), ("Низкое давление. Возможна головная боль.", "Нормальное давление.", "Высокое давление. Отличный день для активности!")),
-            ((5, 10, 15), ("Штиль. Идеально для пикника.", "Лёгкий ветер. Куртка не помешает.", "Сильный ветер. Закрепите незакреплённые предметы.", "Шторм! Будьте осторожны на улице."))
-        )
+                             "wind_direction_10m")
 
     async def get_external_data(self, latitude: float, longitude: float) -> tuple[list, dict]:
         forecast_url_params = {'latitude': latitude, 'longitude': longitude, 'hourly': self.weather_vars}
@@ -51,93 +42,84 @@ class ForecastAPI:
         forecast_weather: dict[str, list] = forecast_weather.json()['hourly']  # {"time": ["2025-07-22T00:00", ...], "temperature_2m": [16.7, ...], ...}
         return forecast_uvi, forecast_weather
 
-    async def get_forecast(self, latitude: float, longitude: float, forecast_range: str, current_hour: int, analysis_mark = False):
-        r = await get_redis()
-        redis_key = f'{str(latitude)}-{str(longitude)}-{str(forecast_range)}-{str(current_hour)}'
+    async def get_forecast(self, latitude: float, longitude: float, forecast_range: str, city_date: datetime, city_name: str, city_timezone: int) -> pathlib.Path:
+        is_for_tomorrow = self.ranges[forecast_range]
+        date = (city_date + timedelta(days=is_for_tomorrow)).strftime("%d-%m-%Y")
+        path = pathlib.Path('app', 'utils', 'forecast_plots', f'{date}', f'{city_name}.png')
 
-        cached_uvi = await r.get(f"{redis_key}:list")
-        if cached_uvi:
-            cached_weather = await r.get(f"{redis_key}:dict")
-            forecast_weather = msgpack.unpackb(cached_weather, raw=False)
-            forecast_uvi = msgpack.unpackb(cached_uvi, raw=False)
-        else:
+        if not path.exists():
+            pathlib.Path(path.parent).mkdir(parents=True, exist_ok=True)
             try:
                 forecast_uvi, forecast_weather = await self.get_external_data(latitude, longitude)
             except HTTPException as e:
                 raise e
 
-            seconds_till_next_hour: int = (60 - datetime.now(UTC).minute) * 60
-            await r.setex(name=f"{redis_key}:dict", value=msgpack.packb(forecast_weather), time=seconds_till_next_hour)
-            await r.setex(name=f"{redis_key}:list", value=msgpack.packb(forecast_uvi), time=seconds_till_next_hour)
+            await asyncio.to_thread(self.create_plot,forecast_weather, forecast_uvi, path, city_timezone, is_for_tomorrow)
+
+        return path
+
+    def create_plot(self, forecast_raw_data: dict, uvi_data: list, path, city_timezone: int, is_for_tomorrow: bool) -> None:
+        forecast_df = pd.DataFrame(forecast_raw_data)
+        uvi_df = pd.DataFrame(uvi_data)
 
 
-        ranges = {'Прогноз на сегодня': 0, 'Прогноз на завтра': 1}
-        # Для "выравнивания" прогнозов находим самое раннее время из обоих сервисов
-        # У прогноза с ультрафиолетом прогноз начинается позже по времени, поэтому берём его раннее время
-        earliest_uvi_hour = fromiso(forecast_uvi[0]['time'][:-1])
-        forecast_day = timedelta(days=ranges[forecast_range]) #
-        start_point: datetime = earliest_uvi_hour + forecast_day
-        if forecast_range == 'Прогноз на завтра': # Прогноз на завтра начинаем с полуночи
-            start_point: datetime = start_point.replace(hour=0)
+        # Приводим время к общему dtype в обоих DataFrames; берем только нужный нам день
+        forecast_df['time'] = forecast_df['time'].astype("datetime64[ns]")
+        uvi_df['time'] = pd.to_datetime(uvi_df['time']).dt.tz_localize(None)
+        forecast_df['time'] += timedelta(hours=city_timezone)
+        uvi_df['time'] += timedelta(hours=city_timezone)
+        forecast_df = forecast_df[forecast_df['time'].dt.day == forecast_df.loc[0, 'time'].day + is_for_tomorrow]
 
-        end_point: datetime = start_point + timedelta(days=1, hours=-start_point.hour)
+        # Соединяем графики в один и ограничиваем кол-во во избежание перегрузки графика
+        df = forecast_df.merge(uvi_df, on='time')
 
-        start_point: int = list(map(lambda x: fromiso(x), forecast_weather['time'])).index(start_point)
-        end_point: int = list(map(lambda x: fromiso(x), forecast_weather['time'])).index(end_point)
+        # Оптимизируем отображение в зависимости от количества данных
+        step = 1 if len(df) <= 16 else 2
+        df = df[::step]
+        labels = df['time'].dt.strftime("%H:%M")
+        ticks = range(0, len(df) * step, step)
 
-        forecast_weather = list(map(lambda x: x[start_point:end_point], forecast_weather.values()))
+        # отображаемые данные
+        weather_icons = {'sun': chr(0x2600), 'cloud': chr(0x2601), 'sun_cloud': chr(0x2600) + chr(0x2601),
+                         'rain': chr(0x2614)}
+        humidity = f"{df['relative_humidity_2m'].mean():.1f}%"
+        pressure = f"{df['surface_pressure'].mean():.0f}mm"
+        wind_speed = f"{df['wind_speed_10m'].mean():.0f}m/s"
 
-        if analysis_mark:
-            forecast = await self.analyze_forecast(forecast_weather)
+        precipitation = df['precipitation'].apply(lambda x: weather_icons['sun'] if x < 1 else weather_icons['rain'])
+        precipitation[precipitation == weather_icons['sun']] = df['cloud_cover'].apply(
+            lambda x: weather_icons['sun'] if x < 20 else weather_icons['sun_cloud'] if x < 60 else weather_icons[
+                'cloud'])
+        data = f'Влажность: {humidity}\nДавление: {pressure}\nСкорость ветра: {wind_speed}'
+
+        # Отображаем данные так, чтобы все столбцы смотрели вверх, даже если есть отрицательные значения
+        if (min_temp := min(df['temperature_2m'])) < 0:
+            values_for_plot = df['temperature_2m'].apply(lambda x: x + abs(min_temp) + 1)
         else:
-            forecast = await self.build_full_forecast(forecast_weather, forecast_uvi, r, redis_key)
-        return forecast
+            values_for_plot = df['temperature_2m']
 
-    async def build_full_forecast(self, forecast_raw_data: list, uvi_data: list, r: Redis, redis_key: str) -> str:
-        """Собирает строку, отображающую погодные данные на каждый час"""
-        for_return = ''
-        forecast_len = len(forecast_raw_data[0]) # Количество часов в прогнозе
+        # Строим график
+        plt.figure(figsize=(max(len(df), 4), 5))
+        figure_axes = plt.axes((0.1, 0.1, 0.8, 0.8))
+        figure_axes.grid(alpha=0.2, color='y', which='both')
+        bar_plot = plt.bar(df.index, values_for_plot, label=data)
 
-        for num in range(forecast_len):
-            for value, units in zip(forecast_raw_data, self.weather_units):
-                val_raw = value[num]
-                uvi = uvi_data[num]
+        # Настройка отображения
+        rang = int(max(abs(df['temperature_2m'])) - min(abs(df['temperature_2m']))) + 5
+        rang = max(4, rang)
+        plt.yticks([x for x in range(rang)])
+        plt.xticks(ticks=ticks, labels=labels, rotation=45)
+        plt.tick_params(axis='y', labelleft=False)
 
-                if isinstance(val_raw, str):
-                    if fromiso(val_raw).timetuple().tm_hour == 0 or num == 0:
-                        for_return += f"📅{fromiso(val_raw).date()}\n{len(val_raw) * '_'}\n\n"
-                    for_return += f"{val_raw[val_raw.index('T')+1:]} - "
-                    if fromiso(val_raw) == fromiso(uvi['time'][:-1]):
-                        for_return += f"☀️UV {uvi['uvi']} | "
-                else:
-                    unit = f"{units}" if units else ""
-                    for_return += f"{unit} {val_raw} {self.weather_units[unit.strip(' :')]}"
+        # Информация
+        plt.title(f"Погода на {path.parent.name}\n"
+                  f"{path.name.strip('.png')}")
+        plt.bar_label(bar_plot, labels=df['temperature_2m'], padding=1, fontsize=16)
+        plt.bar_label(bar_plot, labels=precipitation, padding=15, fontsize=20)
+        figure_axes.legend(fontsize=14)
 
-            for_return += '\n\n'
+        plt.savefig(pathlib.Path(path))
 
-        seconds_till_next_hour: int = (60 - datetime.now(UTC).minute) * 60
-        await r.setex(redis_key, seconds_till_next_hour, for_return)
-        return for_return
 
-    async def analyze_forecast(self, forecast: list) -> str:
-        """Собирает советы на основе погодных данных, а также все минимальные и максимальные значения по времени"""
-        analysis = '\n\nОсновные значения по прогнозу:\n'
-        advices = ''
-        for value, value_name, advice in zip(forecast[1:-1], self.weather_keys, self.advices):
-            value_mark = self.weather_units[value_name.strip(': ')].strip('\n')
-            max_val, min_val = max(value), min(value)
-            max_val_ind, min_val_ind = value.index(max_val), value.index(min_val)
-            max_val_time, min_val_time = forecast[0][max_val_ind], forecast[0][min_val_ind]
-            max_val_time, min_val_time = max_val_time[max_val_time.index('T')+1:], min_val_time[min_val_time.index('T')+1:]
-            analysis += f'max {value_name} - {max_val}{value_mark}({max_val_time})\n'
-            analysis += f'min {value_name} - {min_val}{value_mark}({min_val_time})\n\n'
-            for boundary, advice_text in zip(advice[0], advice[1]):
-                if max_val < boundary:
-                    advices += advice_text
-                    break
-            else:
-                advices += advice[-1][-1]
-        for_return = analysis + advices
-        return for_return
 
 forecast = ForecastAPI()

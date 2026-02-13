@@ -3,6 +3,7 @@
 from aiogram.fsm.context import FSMContext
 from aiogram import types
 from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import FSInputFile
 from httpx import AsyncClient
 
 from app.middleware.middleware import logger
@@ -20,15 +21,13 @@ async def today(message: types.Message,
                 user_service: user_dependency):
     city_id = await user_service.select_user({'telegram_id': message.from_user.id}, return_value='city_id')
     body = {'city_id': city_id, 'forecast_range': message.text}
-    if message.text.find('кратко') != -1:
-        body.update({'short_flag': True})
-        body['forecast_range'] = message.text.replace('(кратко)', '')
     async with AsyncClient() as client:
         environment = os.getenv('ENVIRONMENT', 'localhost')
-        forecast = await client.post(f'http://{environment}:80/user/get_forecast', data=body)
+        forecast = await client.post(f'http://{environment}:80/user/get_forecast', data=body, timeout=10)
         if forecast.status_code == 200:
             forecast = forecast.json().get('forecast')
-            await message.answer(text=forecast)
+            weather_plot = FSInputFile(forecast)
+            await message.answer_photo(photo=weather_plot)
         else:
             await message.answer(text='Ошибка при получении погодных данных')
             logger.info(forecast.text)
