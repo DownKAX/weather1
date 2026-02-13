@@ -23,6 +23,7 @@ class RegistrationForm(BaseModel):
             raise HTTPException(400, 'Password len must be between 8 and 64')
         if self.password != self.password_confirmation:
             raise HTTPException(400, 'Passwords do not match')
+        del self.password_confirmation
         return self
 
 

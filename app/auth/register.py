@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form, HTTPException, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from passlib.hash import bcrypt
+import bcrypt
 from datetime import datetime
 
 from app.auth.exceptions import InvalidPasswordException, ExpiredAccessToken, InvalidRefreshToken
@@ -19,8 +19,9 @@ async def register(user_service: user_dependency, city_service: city_dependency,
     city_id = await city_service.select_city({'city_name': credentials.city}, return_value='id')
     if not city_id:
         raise HTTPException(status_code=404, detail='City not found')
-    hashed_password = bcrypt.hash(credentials.password)
-    user_data = User(username=credentials.username, password=hashed_password, register_time=datetime.now(), city_id=city_id, telegram_id=credentials.telegram_id)
+    password_bytes: bytes = credentials.password.encode('utf-8')
+    hashed_password: bytes = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
+    user_data = User(username=credentials.username, password=hashed_password.decode(), register_time=datetime.now(), city_id=city_id, telegram_id=credentials.telegram_id)
     await user_service.add_user(user_data)
     return user_data
 
@@ -28,7 +29,7 @@ async def register(user_service: user_dependency, city_service: city_dependency,
 async def login(useragent: useragent_dependency, user_service: user_dependency, response: Response,
                 credentials: OAuth2PasswordRequestForm = Depends()):
     user: User = await user_service.select_user({'username': credentials.username})
-    if not bcrypt.verify(credentials.password, user.password):
+    if not bcrypt.checkpw(credentials.password.encode("UTF-8"), user.password.encode()):
         raise InvalidPasswordException
     await verification_stamp(user.username, response, useragent)
     return user
