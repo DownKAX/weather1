@@ -1,10 +1,9 @@
-FROM python:3.12-slim
+FROM python:3.14.2-slim
 
 WORKDIR /myapp
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 80
 COPY . .
 ENV PYTHONPATH=/myapp

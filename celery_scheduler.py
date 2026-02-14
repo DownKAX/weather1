@@ -1,7 +1,7 @@
 from celery.schedules import crontab
 from dotenv import load_dotenv
 import os
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "app", ".env"))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 from celery import Celery
 from my_redis_client import get_sync_redis
